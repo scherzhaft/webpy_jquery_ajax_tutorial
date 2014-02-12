@@ -1,0 +1,27 @@
+import sys, os
+sys.path.append('/var/www/webpy-app')
+
+
+import web
+render = web.template.render('/var/www/webpy-app/templates/')
+
+## Debug mode ##
+web.config.debug = True
+
+urls = (
+    '/(.*)', 'index',
+)
+
+class index:
+    def GET(self, name):
+##	name = 'Bob'
+##	i = web.input(name=None)
+	return render.index(name)
+
+##if __name__ == "__main__":
+##    app = web.application(urls, globals())
+##    app.run()
+
+application = web.application(urls, globals()).wsgifunc()
+
+

@@ -1,13 +1,30 @@
-#!/usr/bin/python
+##  The most Basic of modules you should always import  ##
+import sys, os
 
 
+
+##  Setup environment.... look in ./py_libs first  ##
+fqself = os.path.abspath(__file__)
+my_libs = os.path.dirname(fqself) + '/py_libs/'
+sys.path.insert(1, my_libs)
+
+
+
+##  Import dependencies  ##
 import web
+
+
+
+## Webpy Debug mode ##
+web.config.debug = True
+
+
 
 def make_text(string):
 	return string
 
 urls = ('/', 'tutorial')
-render = web.template.render('templates/')
+render = web.template.render('/var/www/webpy-app/templates/')
 
 app = web.application(urls, globals())
 
@@ -26,6 +43,13 @@ class tutorial:
 		s = form.value['textfield']
 		return make_text(s)
 
-if __name__ == '__main__':
-	app.run()
+
+
+
+## Uncomment to use internal webpy internal app engine(non production)
+##if __name__ == '__main__':
+##	app.run()
+
+application = web.application(urls, globals()).wsgifunc()
+
 
