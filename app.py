@@ -1,5 +1,5 @@
 ##  The most Basic of modules you should always import  ##
-import sys, os
+import sys, os, time
 
 
 
@@ -38,6 +38,7 @@ class tutorial:
 		return render.tutorial(form, "Your text goes here.")
 
 	def POST(self):
+		time.sleep(10)
 		form = my_form()
 		form.validates()
 		s = form.value['textfield']
