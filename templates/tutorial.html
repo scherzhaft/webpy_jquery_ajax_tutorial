@@ -9,18 +9,21 @@ $def with (form, text)
 		<link rel="stylesheet" type="text/css" href="/static/tutorial.css" />
 
 		<script type="text/javascript" src="/static/jquery-1.11.0.min.js"></script>
+		<script type="text/javascript" src="/static/jquery.blockUI.js"></script>
 
 		<script type="text/javascript">
 					jQuery(document).ready(function() {
+					jQuery.unblockUI();
 					jQuery(".button").click(function() {
 						//alert('Im going to start processing');
-						//jQuery.blockUI();
+						jQuery.blockUI();
 						var input_string = $$("input#textfield").val();
 						jQuery.ajax({
 							type: "POST",
 							data: {textfield : input_string},
 							success: function(data) {
 							jQuery('#foo').html(data).hide().fadeIn(1500);
+							jQuery.unblockUI();
 							},
 							});
 						return false;
