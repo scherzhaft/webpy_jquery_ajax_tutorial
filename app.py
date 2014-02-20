@@ -42,14 +42,15 @@ class tutorial:
 		time.sleep(10)
 		form = my_form()
 		form.validates()
-		s = form.value['username']
-		valid = re.compile('^[.a-z0-9_-]+$').match(s)
+		username = form.value['username']
+		code = form.value['code']
+		valid = re.compile('^[.a-z0-9_-]+$').match(username)
 		if valid is None :
 			return make_text("invalid, you are wrong, wrong, wrong.")
 	
 
 
-		return make_text(s)
+		return make_text(username)
 
 
 
