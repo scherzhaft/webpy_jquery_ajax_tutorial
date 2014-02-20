@@ -17,10 +17,12 @@ $def with (form, text)
 					jQuery(".button").click(function() {
 						//alert('Im going to start processing');
 						jQuery.blockUI();
-						var input_string = $$("input#textfield").val();
+						var username = $$("input#username").val();
+						var code = $$("input#code").val();
 						jQuery.ajax({
 							type: "POST",
-							data: {textfield : input_string},
+							data: {username : username, code : code},
+							//data: {code : input_string},
 							success: function(data) {
 							jQuery('#foo').html(data).hide().fadeIn(1500);
 							jQuery.unblockUI();

@@ -29,7 +29,8 @@ render = web.template.render('/var/www/webpy-app/templates/')
 app = web.application(urls, globals())
 
 my_form = web.form.Form(
-	web.form.Textbox('', class_='textfield', id='textfield'),
+	web.form.Textbox('', class_='username', id='username', description='username:'),
+	web.form.Textbox('', class_='code', id='code', description='code:')
 	)
 
 class tutorial:
@@ -41,7 +42,7 @@ class tutorial:
 		time.sleep(10)
 		form = my_form()
 		form.validates()
-		s = form.value['textfield']
+		s = form.value['username']
 		valid = re.compile('^[.a-z0-9_-]+$').match(s)
 		if valid is None :
 			return make_text("invalid, you are wrong, wrong, wrong.")
