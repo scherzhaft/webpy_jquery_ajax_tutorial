@@ -1,5 +1,5 @@
 ##  The most Basic of modules you should always import  ##
-import sys, os, time
+import sys, os, time, re
 
 
 
@@ -35,13 +35,19 @@ my_form = web.form.Form(
 class tutorial:
 	def GET(self):
 		form = my_form()
-		return render.tutorial(form, "Your text goes here.")
+		return render.tutorial(form, "Enter username.")
 
 	def POST(self):
 		time.sleep(10)
 		form = my_form()
 		form.validates()
 		s = form.value['textfield']
+		valid = re.compile('^[.a-z0-9_-]+$').match(s)
+		if valid is None :
+			return make_text("invalid, you are wrong, wrong, wrong.")
+	
+
+
 		return make_text(s)
 
 
