@@ -1,7 +1,5 @@
-$def with (name)
-
-$if name:
-    I just wanted to say <em>hello</em> to $name.
-$else:
-    <em>Hello</em>, world!
-    <em>Hello</em>, world!
+$def with (testq)
+<ul>
+$for users in testq:
+    <h1>$users.username|$users.email</h1>
+</ul>
