@@ -1,0 +1,110 @@
+##  The most Basic of modules you should always import  ##
+import sys, os, time, re, random, string
+
+
+## We need to send mail ##
+import smtplib
+from email.mime.text import MIMEText
+
+
+
+
+
+##  Setup environment.... look in ./py_libs first  ##
+fqself = os.path.abspath(__file__)
+my_libs = os.path.dirname(fqself) + '/py_libs/'
+sys.path.insert(1, my_libs)
+
+
+
+##  Import dependencies  ##
+import web
+db = web.database(dbn='mysql', user='%PROTO%', pw='%PROTO%', db='%PROTO%')
+
+
+## Webpy Debug mode ##
+web.config.debug = True
+
+
+
+def make_text(string):
+	return string
+
+urls = ('/', 'tutorial',
+	'/index', 'index')
+
+render = web.template.render('/var/www/webpy-app/templates/')
+
+app = web.application(urls, globals())
+
+my_form = web.form.Form(
+	web.form.Textbox('', class_='username', id='username', description='username:'),
+	web.form.Password('', class_='code', id='code', description='code:', autocomplete="off")
+	)
+
+
+class index:
+	def GET(self):
+	    testq = db.select('users')
+	    return render.index(testq)
+
+
+class tutorial:
+	def GET(self):
+		form = my_form()
+		return render.tutorial(form, "Enter username.")
+
+	def POST(self):
+		time.sleep(10)
+		form = my_form()
+		form.validates()
+		username = form.value['username']
+		code = re.compile('^[\S]{32}').match(form.value['code'])
+		myvar1 = dict(username=username)
+		myvar2 = dict(code=code)
+		valid = re.compile('^[.a-z0-9_-]+$').match(username)
+		if valid is None :
+			return make_text("invalid, you are wrong, wrong, wrong.")
+	
+
+		msg = MIMEText(code_gen(32))
+		msg['Subject'] = 'Reset code'
+		msg['From'] = '%PROTO%'
+	
+
+		if code is not None:
+			results = db.select('users', myvar1, where="username = $username")
+			for record in results:
+				mycode = record.code
+				if mycode == code:
+					return make_text(pass_gen(32))
+			
+
+		results = db.select('users', myvar1, where="username = $username")
+		for record in results:
+			msg['To'] = record.email
+			send = smtplib.SMTP('%PROTO%')
+			send.sendmail(msg['From'], msg['To'], msg.as_string())
+			send.quit
+			return make_text("You got mail.")
+
+		return make_text("not found")
+
+
+def code_gen(size=6, chars=string.digits + string.ascii_letters):
+	return ''.join(random.choice(chars) for x in range(size))
+
+
+def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctuation):
+	return ''.join(random.choice(chars) for x in range(size))
+
+
+
+
+## Uncomment to use internal webpy internal app engine(non production)
+##if __name__ == '__main__':
+##	app.run()
+
+application = web.application(urls, globals()).wsgifunc()
+
+
