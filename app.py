@@ -1,5 +1,12 @@
 ##  The most Basic of modules you should always import  ##
-import sys, os, time, re
+import sys, os, time, re, random, string
+
+
+## We need to send mail ##
+import smtplib
+from email.mime.text import MIMEText
+
+
 
 
 
@@ -12,7 +19,11 @@ sys.path.insert(1, my_libs)
 
 ##  Import dependencies  ##
 import web
-
+import MYconfig
+db = web.database(dbn=MYconfig.options['dbn'],
+	user=MYconfig.options['user'],
+	pw=MYconfig.options['pw'],
+	db=MYconfig.options['db'])
 
 
 ## Webpy Debug mode ##
@@ -23,15 +34,24 @@ web.config.debug = True
 def make_text(string):
 	return string
 
-urls = ('/', 'tutorial')
+urls = ('/', 'tutorial',
+	'/index', 'index')
+
 render = web.template.render('/var/www/webpy-app/templates/')
 
 app = web.application(urls, globals())
 
 my_form = web.form.Form(
 	web.form.Textbox('', class_='username', id='username', description='username:'),
-	web.form.Textbox('', class_='code', id='code', description='code:')
+	web.form.Password('', class_='code', id='code', description='code:', autocomplete="off")
 	)
+
+
+class index:
+	def GET(self):
+	    testq = db.select('users')
+	    return render.index(testq)
+
 
 class tutorial:
 	def GET(self):
@@ -43,14 +63,44 @@ class tutorial:
 		form = my_form()
 		form.validates()
 		username = form.value['username']
-		code = form.value['code']
+		code = re.compile('^[\S]{32}').match(form.value['code'])
+		myvar1 = dict(username=username)
+		myvar2 = dict(code=code)
 		valid = re.compile('^[.a-z0-9_-]+$').match(username)
 		if valid is None :
 			return make_text("invalid, you are wrong, wrong, wrong.")
 	
 
+		msg = MIMEText(code_gen(32))
+		msg['Subject'] = 'Reset code'
+		msg['From'] = MYconfig.options['sender']
+	
 
-		return make_text(username)
+		if code is not None:
+			results = db.select('users', myvar1, where="username = $username")
+			for record in results:
+				mycode = record.code
+				if mycode == code:
+					return make_text(pass_gen(32))
+			
+
+		results = db.select('users', myvar1, where="username = $username")
+		for record in results:
+			msg['To'] = record.email
+			send = smtplib.SMTP(MYconfig.options['mail_relay'])
+			send.sendmail(msg['From'], msg['To'], msg.as_string())
+			send.quit
+			return make_text("You got mail.")
+
+		return make_text("not found")
+
+
+def code_gen(size=6, chars=string.digits + string.ascii_letters):
+	return ''.join(random.choice(chars) for x in range(size))
+
+
+def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctuation):
+	return ''.join(random.choice(chars) for x in range(size))
 
 
 
