@@ -20,10 +20,10 @@ sys.path.insert(1, my_libs)
 ##  Import dependencies  ##
 import web
 import MYconfig
-db = web.database(dbn=MYconfig.options['dbn'],
-	user=MYconfig.options['user'],
-	pw=MYconfig.options['pw'],
-	db=MYconfig.options['db'])
+db = web.database(dbn=MYconfig.options.get('dbn'),
+	user=MYconfig.options.get('user'),
+	pw=MYconfig.options.get('pw'),
+	db=MYconfig.options.get('db'))
 
 
 ## Webpy Debug mode ##
@@ -73,8 +73,8 @@ class tutorial:
 
 		msg = MIMEText(code_gen(32))
 		msg['Subject'] = 'Reset code'
-		msg['From'] = MYconfig.options['sender']
-	
+		msg['From'] = MYconfig.options.get('sender')
+
 
 		if code is not None:
 			results = db.select('users', myvar1, where="username = $username")
@@ -87,7 +87,7 @@ class tutorial:
 		results = db.select('users', myvar1, where="username = $username")
 		for record in results:
 			msg['To'] = record.email
-			send = smtplib.SMTP(MYconfig.options['mail_relay'])
+			send = smtplib.SMTP(MYconfig.options.get('mailrelay'))
 			send.sendmail(msg['From'], msg['To'], msg.as_string())
 			send.quit
 			return make_text("You got mail.")
