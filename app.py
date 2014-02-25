@@ -7,18 +7,21 @@ import smtplib
 from email.mime.text import MIMEText
 
 
-
-
-
 ##  Setup environment.... look in ./py_libs first  ##
 fqself = os.path.abspath(__file__)
 my_libs = os.path.dirname(fqself) + '/py_libs/'
 sys.path.insert(1, my_libs)
 
 
-
 ##  Import dependencies  ##
 import web
+
+
+## Webpy Debug mode ##
+web.config.debug = True
+
+
+## Configure database connector ##
 import MYconfig
 db = web.database(dbn=MYconfig.options.get('dbn'),
 	user=MYconfig.options.get('user'),
@@ -26,33 +29,34 @@ db = web.database(dbn=MYconfig.options.get('dbn'),
 	db=MYconfig.options.get('db'))
 
 
-## Webpy Debug mode ##
-web.config.debug = True
-
-
-
+## Some functions that all may need ##
 def make_text(string):
 	return string
 
-urls = ('/', 'tutorial',
-	'/index', 'index')
+def code_gen(size=6, chars=string.digits + string.ascii_letters):
+	return ''.join(random.choice(chars) for x in range(size))
 
+def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctuation):
+	return ''.join(random.choice(chars) for x in range(size))
+
+
+## path where the all the webpy html templates go ##
 render = web.template.render('/var/www/webpy-app/templates/')
 
-app = web.application(urls, globals())
 
+## Setup our web form ##
 my_form = web.form.Form(
 	web.form.Textbox('', class_='username', id='username', description='username:'),
 	web.form.Password('', class_='code', id='code', description='code:', autocomplete="off")
 	)
 
 
-class index:
-	def GET(self):
-	    testq = db.select('users')
-	    return render.index(testq)
+## Url/Class mapping ##
+urls = ('/', 'tutorial',
+	'/index', 'index')
 
 
+## Actual classes that spawn when mapped url is hit ##
 class tutorial:
 	def GET(self):
 		form = my_form()
@@ -95,17 +99,9 @@ class tutorial:
 		return make_text("not found")
 
 
-def code_gen(size=6, chars=string.digits + string.ascii_letters):
-	return ''.join(random.choice(chars) for x in range(size))
-
-
-def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctuation):
-	return ''.join(random.choice(chars) for x in range(size))
-
-
-
 
 ## Uncomment to use internal webpy internal app engine(non production)
+##app = web.application(urls, globals())
 ##if __name__ == '__main__':
 ##	app.run()
 
