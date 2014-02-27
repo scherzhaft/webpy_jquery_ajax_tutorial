@@ -15,6 +15,7 @@ sys.path.insert(1, my_libs)
 
 ##  Import dependencies  ##
 import web
+import paramiko
 
 
 ## Webpy Debug mode ##
@@ -38,6 +39,15 @@ def code_gen(size=6, chars=string.digits + string.ascii_letters):
 
 def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctuation):
 	return ''.join(random.choice(chars) for x in range(size))
+
+def setpw(user, host, prikey):
+	port = 22
+	trans = paramiko.Transport((host,port))
+	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
+	trans.connect(username=user, pkey=dsa_key)
+	session = trans.open_session()
+	session.get_pty()
+	session.exec_command('sudo touch /tmp/test')
 
 
 ## path where the all the webpy html templates go ##
@@ -63,15 +73,15 @@ class tutorial:
 		return render.tutorial(form, "Enter username.")
 
 	def POST(self):
-		time.sleep(10)
 		form = my_form()
 		form.validates()
 		username = form.value['username']
-		code = re.compile('^[\S]{32}').match(form.value['code'])
+		code = form.value['code']
 		myvar1 = dict(username=username)
 		myvar2 = dict(code=code)
-		valid = re.compile('^[.a-z0-9_-]+$').match(username)
-		if valid is None :
+		validuser = re.compile('^[.a-z0-9_-]+$').match(username)
+		validcode = re.compile('^[\S]{32}').match(form.value['code'])
+		if validuser is None :
 			return make_text("invalid, you are wrong, wrong, wrong.")
 	
 
@@ -80,20 +90,29 @@ class tutorial:
 		msg['From'] = MYconfig.options.get('sender')
 
 
-		if code is not None:
+		if validcode is not None:
 			results = db.select('users', myvar1, where="username = $username")
 			for record in results:
+				mylastupdate = int(time.mktime(record.timestamp.timetuple()))
+				currenttime = int(time.mktime(time.localtime()))
+				codeage = currenttime - mylastupdate
 				mycode = record.code
-				if mycode == code:
-					return make_text(pass_gen(32))
+				if mycode == code and codeage < 80:
+					mypass = pass_gen(32)
+					setpw(username, MYconfig.options.get('testhost'), MYconfig.options.get('prikey'))
+					return codeage, mypass
 			
 
 		results = db.select('users', myvar1, where="username = $username")
 		for record in results:
+			writecode = db.update('users', where="username = $username", code = msg._payload, vars=locals(), _test=True)
+			db.update('users', where="username = $username", code = msg._payload, vars=locals())
+
 			msg['To'] = record.email
 			send = smtplib.SMTP(MYconfig.options.get('mailrelay'))
 			send.sendmail(msg['From'], msg['To'], msg.as_string())
 			send.quit
+			time.sleep(4)
 			return make_text("You got mail.")
 
 		return make_text("not found")
