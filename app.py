@@ -40,14 +40,33 @@ def code_gen(size=6, chars=string.digits + string.ascii_letters):
 def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctuation):
 	return ''.join(random.choice(chars) for x in range(size))
 
-def setpw(user, host, prikey):
+def setpw(user, host, prikey, mypass, system):
+	##cmd = '''echo ''' + "'" + mypass + "'" + '''|sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
+	cmd = '''sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
+	##cmd = 'echo foo|sudo passwd --stdin ' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset '''
+	##cmd = 'echo foo|sudo passwd --stdin ' + user
 	port = 22
 	trans = paramiko.Transport((host,port))
 	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
-	trans.connect(username=user, pkey=dsa_key)
+	trans.connect(username=system, pkey=dsa_key)
 	session = trans.open_session()
 	session.get_pty()
-	session.exec_command('sudo touch /tmp/test')
+	####session.exec_command(cmd)
+	####session.exec_command('sudo passwd --stdin ' + user)
+	session.exec_command(cmd)
+	session.send(mypass + '\n')
+
+def newsetpw(user, host, prikey, mypass):
+	ssh = paramiko.SSHClient()
+	ssh.load_system_host_keys()
+	ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
+	ssh.connect(host, port=22, username=system, password=None, pkey=None, key_filename=prikey)
+	t = ssh.get_transport()
+	chan = t.open_session()
+	chan.get_pty()
+	chan.exec_command('sudo passwd --stdin ' + user)
+	####chan.exec_command('sudo echo ' + mypass)
+	chan.send(mypass + '\n')
 
 
 ## path where the all the webpy html templates go ##
@@ -99,8 +118,13 @@ class tutorial:
 				mycode = record.code
 				if mycode == code and codeage < 80:
 					mypass = pass_gen(32)
-					setpw(username, MYconfig.options.get('testhost'), MYconfig.options.get('prikey'))
-					return codeage, mypass
+					setpw(username, MYconfig.options.get('testhost'), MYconfig.options.get('prikey'), mypass, MYconfig.options.get('system'))
+					cmd = 'echo foo|sudo passwd --stdin ' + username + ''' && { sudo passwd -u ''' + username + ''' ; sudo passwd -x 999999 ''' + username + ''' ; /sbin/pam_tally2 --user ''' + username + ''' --reset ; } '''
+					cmd = '''echo ''' + "'" + mypass + "'" + '''|sudo passwd --stdin ''' + username + ''' && { sudo passwd -u ''' + username + ''' ; sudo passwd -x 999999 ''' + username + ''' ; /sbin/pam_tally2 --user ''' + username + ''' --reset ; } '''
+					####db.update('users', where="username = $username", code = mypass, vars=locals())
+					
+					
+					return mypass
 			
 
 		results = db.select('users', myvar1, where="username = $username")
