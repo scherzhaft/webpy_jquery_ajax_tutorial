@@ -41,22 +41,17 @@ def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctua
 	return ''.join(random.choice(chars) for x in range(size))
 
 def setpw(user, host, prikey, mypass, system):
-	##cmd = '''echo ''' + "'" + mypass + "'" + '''|sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
 	cmd = '''sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
-	##cmd = 'echo foo|sudo passwd --stdin ' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset '''
-	##cmd = 'echo foo|sudo passwd --stdin ' + user
 	port = 22
 	trans = paramiko.Transport((host,port))
 	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
 	trans.connect(username=system, pkey=dsa_key)
 	session = trans.open_session()
 	session.get_pty()
-	####session.exec_command(cmd)
-	####session.exec_command('sudo passwd --stdin ' + user)
 	session.exec_command(cmd)
 	session.send(mypass + '\n')
 
-def newsetpw(user, host, prikey, mypass):
+def oldsetpw(user, host, prikey, mypass):
 	ssh = paramiko.SSHClient()
 	ssh.load_system_host_keys()
 	ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
@@ -65,7 +60,6 @@ def newsetpw(user, host, prikey, mypass):
 	chan = t.open_session()
 	chan.get_pty()
 	chan.exec_command('sudo passwd --stdin ' + user)
-	####chan.exec_command('sudo echo ' + mypass)
 	chan.send(mypass + '\n')
 
 
@@ -119,11 +113,6 @@ class tutorial:
 				if mycode == code and codeage < 80:
 					mypass = pass_gen(32)
 					setpw(username, MYconfig.options.get('testhost'), MYconfig.options.get('prikey'), mypass, MYconfig.options.get('system'))
-					cmd = 'echo foo|sudo passwd --stdin ' + username + ''' && { sudo passwd -u ''' + username + ''' ; sudo passwd -x 999999 ''' + username + ''' ; /sbin/pam_tally2 --user ''' + username + ''' --reset ; } '''
-					cmd = '''echo ''' + "'" + mypass + "'" + '''|sudo passwd --stdin ''' + username + ''' && { sudo passwd -u ''' + username + ''' ; sudo passwd -x 999999 ''' + username + ''' ; /sbin/pam_tally2 --user ''' + username + ''' --reset ; } '''
-					####db.update('users', where="username = $username", code = mypass, vars=locals())
-					
-					
 					return mypass
 			
 
@@ -131,7 +120,6 @@ class tutorial:
 		for record in results:
 			writecode = db.update('users', where="username = $username", code = msg._payload, vars=locals(), _test=True)
 			db.update('users', where="username = $username", code = msg._payload, vars=locals())
-
 			msg['To'] = record.email
 			send = smtplib.SMTP(MYconfig.options.get('mailrelay'))
 			send.sendmail(msg['From'], msg['To'], msg.as_string())
