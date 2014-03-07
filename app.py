@@ -16,6 +16,7 @@ sys.path.insert(1, my_libs)
 ##  Import dependencies  ##
 import web
 import paramiko
+import crypt, getpass, pwd
 
 
 ## Webpy Debug mode ##
@@ -41,6 +42,49 @@ def pass_gen(size=6, chars=string.digits + string.ascii_letters + string.punctua
 	return ''.join(random.choice(chars) for x in range(size))
 
 def setpw(user, host, prikey, mypass, system):
+	f = open(my_libs + '/replace.hash.sh')
+	script = f.read()
+	f.close()
+	port = 22
+	trans = paramiko.Transport((host,port))
+	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
+	trans.connect(username=system, pkey=dsa_key)
+	session = trans.open_session()
+	session.get_pty()
+	session.exec_command('''export PATH="${PATH}:/usr/local/bin" ; cat - | sudo /bin/bash -x ''')
+	cmd = '''USERID=''' + user +  '\n' + '''PASSWD=''' + "'" + crypt.crypt(mypass) + "'" + '\n' + script + '\n' + '\n' + '\n'
+	session.send(cmd)
+	time.sleep(4)
+	session.send('\n')
+	time.sleep(4)
+	session.send('\n')
+	time.sleep(4)
+	session.close()
+	time.sleep(4)
+	stdout = session.makefile('rb', -1).readlines()
+	stderr = session.makefile_stderr('rb', -1).readlines()
+	status = session.recv_exit_status()
+	return {'stdout' : stdout,
+		'stderr' : stderr,
+		'status' : status}
+
+def brokesetpw(user, host, prikey, mypass, system):
+	cmd = '''sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
+	f = open(my_libs + '/replace.hash.sh')
+	script = f.read()
+	f.close()	
+	port = 22
+	trans = paramiko.Transport((host,port))
+	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
+	trans.connect(username=system, pkey=dsa_key)
+	session = trans.open_session()
+	session.get_pty()
+##	session.exec_command(cmd)
+	session.exec_command('''cat - | /usr/local/bin/sudo /bin/bash -x ''')
+	cmd = '''USERID="''' + user + '''"''' + '\n' + '''PASSWD='''' + crypt.crypt(mypass) + ''''''' + '\n' + script + '\n' + '\n' + '\n'
+	session.send(cmd)
+
+def newersetpw(user, host, prikey, mypass, system):
 	cmd = '''sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
 	port = 22
 	trans = paramiko.Transport((host,port))
@@ -106,14 +150,21 @@ class tutorial:
 		if validcode is not None:
 			results = db.select('users', myvar1, where="username = $username")
 			for record in results:
-				mylastupdate = int(time.mktime(record.timestamp.timetuple()))
+				mylastupdate = int('0')
+				if record.timestamp is not None:
+					mylastupdate = int(time.mktime(record.timestamp.timetuple()))
 				currenttime = int(time.mktime(time.localtime()))
 				codeage = currenttime - mylastupdate
+				##return codeage , currenttime
 				mycode = record.code
 				if mycode == code and codeage < 80:
 					mypass = pass_gen(32)
-					setpw(username, MYconfig.options.get('testhost'), MYconfig.options.get('prikey'), mypass, MYconfig.options.get('system'))
-					return mypass
+					reset = setpw(username, MYconfig.options.get('testhost'), MYconfig.options.get('prikey'), mypass, MYconfig.options.get('system'))
+					if reset.get('status') is not 0:
+						return 'Reset Failed: ' + str(reset.get('status'))
+
+
+					return mypass, reset.get('status')
 			
 
 		results = db.select('users', myvar1, where="username = $username")
