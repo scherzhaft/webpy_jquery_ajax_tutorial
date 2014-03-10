@@ -68,44 +68,6 @@ def setpw(user, host, prikey, mypass, system):
 		'stderr' : stderr,
 		'status' : status}
 
-def brokesetpw(user, host, prikey, mypass, system):
-	cmd = '''sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
-	f = open(my_libs + '/replace.hash.sh')
-	script = f.read()
-	f.close()	
-	port = 22
-	trans = paramiko.Transport((host,port))
-	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
-	trans.connect(username=system, pkey=dsa_key)
-	session = trans.open_session()
-	session.get_pty()
-##	session.exec_command(cmd)
-	session.exec_command('''cat - | /usr/local/bin/sudo /bin/bash -x ''')
-	cmd = '''USERID="''' + user + '''"''' + '\n' + '''PASSWD='''' + crypt.crypt(mypass) + ''''''' + '\n' + script + '\n' + '\n' + '\n'
-	session.send(cmd)
-
-def newersetpw(user, host, prikey, mypass, system):
-	cmd = '''sudo passwd --stdin ''' + user + ''' && { sudo passwd -u ''' + user + ''' ; sudo passwd -x 999999 ''' + user + ''' ; /sbin/pam_tally2 --user ''' + user + ''' --reset ; } '''
-	port = 22
-	trans = paramiko.Transport((host,port))
-	dsa_key = paramiko.DSSKey.from_private_key_file(prikey)
-	trans.connect(username=system, pkey=dsa_key)
-	session = trans.open_session()
-	session.get_pty()
-	session.exec_command(cmd)
-	session.send(mypass + '\n')
-
-def oldsetpw(user, host, prikey, mypass):
-	ssh = paramiko.SSHClient()
-	ssh.load_system_host_keys()
-	ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
-	ssh.connect(host, port=22, username=system, password=None, pkey=None, key_filename=prikey)
-	t = ssh.get_transport()
-	chan = t.open_session()
-	chan.get_pty()
-	chan.exec_command('sudo passwd --stdin ' + user)
-	chan.send(mypass + '\n')
-
 
 ## path where the all the webpy html templates go ##
 render = web.template.render('/var/www/webpy-app/templates/')
@@ -137,7 +99,7 @@ class tutorial:
 		myvar1 = dict(username=username)
 		myvar2 = dict(code=code)
 		validuser = re.compile('^[.a-z0-9_-]+$').match(username)
-		validcode = re.compile('^[\S]{32}').match(form.value['code'])
+		validcode = re.compile('^[\S]{32}').match(code)
 		if validuser is None :
 			return make_text("invalid, you are wrong, wrong, wrong.")
 	
@@ -155,7 +117,6 @@ class tutorial:
 					mylastupdate = int(time.mktime(record.timestamp.timetuple()))
 				currenttime = int(time.mktime(time.localtime()))
 				codeage = currenttime - mylastupdate
-				##return codeage , currenttime
 				mycode = record.code
 				if mycode == code and codeage < 80:
 					mypass = pass_gen(32)
