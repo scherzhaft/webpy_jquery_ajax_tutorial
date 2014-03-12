@@ -17,6 +17,7 @@ sys.path.insert(1, my_libs)
 import web
 import paramiko
 import crypt, getpass, pwd
+import xml.sax.saxutils
 
 
 ## Webpy Debug mode ##
@@ -30,8 +31,21 @@ db = web.database(dbn=MYconfig.options.get('dbn'),
 	pw=MYconfig.options.get('pw'),
 	db=MYconfig.options.get('db'))
 
+## escape() and unescape() takes care of &, < and >.
+html_escape_table = {
+	'"': "&quot;",
+	"'": "&apos;"
+}
+html_unescape_table = dict(zip(html_escape_table.values(), html_escape_table.keys()))
+
 
 ## Some functions that all may need ##
+def html_escape(text):
+	return xml.sax.saxutils.escape(text, html_escape_table)
+
+def html_unescape(text):
+	return xml.sax.saxutils.unescape(text, html_unescape_table)
+
 def make_text(string):
 	return string
 
@@ -52,7 +66,17 @@ def setpw(user, host, prikey, mypass, system):
 	session = trans.open_session()
 	session.get_pty()
 	session.exec_command('''export PATH="${PATH}:/usr/local/bin" ; cat - | sudo /bin/bash -x ''')
-	cmd = '''USERID=''' + user +  '\n' + '''PASSWD=''' + "'" + crypt.crypt(mypass) + "'" + '\n' + script + '\n' + '\n' + '\n'
+
+
+	cmd = '''USERID='%s'
+	PASSWD='%s'
+	
+	%s
+	
+	
+	''' % (user, crypt.crypt(mypass), script)
+
+
 	session.send(cmd)
 	time.sleep(4)
 	session.send('\n')
@@ -125,7 +149,7 @@ class tutorial:
 						return 'Reset Failed: ' + str(reset.get('status'))
 
 
-					return mypass, reset.get('status')
+					return '''%s   [%s]''' % (html_escape(mypass), str(reset.get('status')))
 			
 
 		results = db.select('users', myvar1, where="username = $username")
