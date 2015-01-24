@@ -5,6 +5,7 @@ $def with (form, text)
 <html>
 
 	<head>
+		<meta http-equiv="refresh" content="900">
 		<title>Unix account Reset</title>
 		<link rel="stylesheet" type="text/css" href="/static/tutorial.css" />
 
@@ -19,9 +20,13 @@ $def with (form, text)
 						jQuery.blockUI();
 						var username = $$("input#username").val();
 						var code = $$("input#code").val();
+						var passwd = $$("input#passwd").val();
+						//var server = $$("input#server").val();
+						var server = $$("select.server option:selected").val();
 						jQuery.ajax({
 							type: "POST",
-							data: {username : username, code : code},
+							//data: {username : username, code : code, server : server, serverdrop : serverdrop},
+							data: {username : username, code : code, passwd : passwd, server : server},
 							//data: {code : input_string},
 							success: function(data) {
 							jQuery('#foo').html(data).hide().fadeIn(1500);
@@ -36,6 +41,7 @@ $def with (form, text)
 	</head>
 
 	<body>
+		<center>
 		<br>
 		<form class="form" method="post">
 		$:form.render()
@@ -43,6 +49,7 @@ $def with (form, text)
 		</form>
 
 		<br><br>
+		</center>
 		<center><span id="foo">$text</span></center>
 	</body>
 

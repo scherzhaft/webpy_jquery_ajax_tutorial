@@ -1,8 +1,12 @@
+USERID='test'
+SHA512HASH='$6$lkP7hCQXW7Kz/dIc$gh5Upaa.1M5ubw2wG5SBXXlxV3wQ908Bxc3wjHkOgtYlzBkTAum3D1.U/oxVTDcGFkW3FMpLVryMCPDR0vx/o.'
+CRYPTHASH='j7v0EGpFk3UU6'
+MD5HASH='$1$iklMhLUp$JzKtZtRCnwHgBXxpNwL/5/'
+	
 test "X${USERID}" = "X" && exit 4
 test "X${CRYPTHASH}" = "X" && exit 5
 test "X${SHA512HASH}" = "X" && exit 6
 test "X${MD5HASH}" = "X" && exit 7
-EPOCDAY="$(perl -e 'print int(time/(60*60*24))')" ; test "X${EPOCDAY}" = "X" && exit 8
 OSNAME="$(/bin/uname -s)"
 PASSWD=''  
 if [ "${OSNAME}" = Linux ] ; then
@@ -13,14 +17,12 @@ elif [ "${OSNAME}" = SunOS ] ; then
   if [[ "${CRYPT_POL}.${CRYPT_CONF}" == *__unix__* ]] ; then
     PASSWD="${CRYPTHASH}"
   elif [[ "${CRYPT_POL}.${CRYPT_CONF}" == *crypt_bsdmd5* ]] ; then
-    PASSWD="$(echo "${MD5HASH}"|awk -F'$' {'print $1"\\$"$2"\\$"$3"\\$"$4'})"
-  elif [[ "${CRYPT_POL}.${CRYPT_CONF}" == *crypt_sha512* ]] ; then
-    PASSWD="$(echo "${SHA512HASH}"|awk -F'$' {'print "\\$"$2"\\$"$3"\\$"$4'})"
+    PASSWD="${MD5HASH}"
   fi
 fi
 grep "^${USERID}:" /etc/shadow  >/dev/null && {
   test "X${PASSWD}" != "X" && {
-    perl -p -i.prev -e "s|^${USERID}:[^:]+:[^:]+|${USERID}:${PASSWD}:${EPOCDAY}|g" /etc/shadow
+    perl -p -i.prev -e "s|^${USERID}:[^:]+|${USERID}:${PASSWD}|g" /etc/shadow
     case "${OSNAME}" in
       Linux)
         /usr/bin/passwd -u "${USERID}" 1>&2
@@ -38,3 +40,13 @@ grep "^${USERID}:" /etc/shadow  >/dev/null && {
   exit 35
 }
 exit 37
+##
+##
+##
+##
+##
+##
+##
+
+
+

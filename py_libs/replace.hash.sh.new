@@ -1,0 +1,57 @@
+
+test "X${USERID}" = "X" && exit 4
+test "X${CRYPTHASH}" = "X" && exit 5
+test "X${SHA512HASH}" = "X" && exit 6
+tty
+
+
+OSNAME="$(/bin/uname -s)"
+
+
+PASSWD=''  
+case "${OSNAME}" in
+  Linux)
+    PASSWD="$(echo "${SHA512HASH}"|awk -F'$' {'print $1"\\$"$2"\\$"$3"\\$"$4'})"
+  ;;
+
+  SunOS)
+    CRYPT_POL="$(grep  "^CRYPT_DEFAULT=" /etc/security/policy.conf|awk -F\= {'print $2'}|awk {'print $1'}|tail -1)"
+    test "X${CRYPT_POL}" != "X" && CRYPT_CONF="$(awk {'print $1"="$2'} /etc/security/crypt.conf|grep "^${CRYPT_POL}="|tail -1|awk -F\= {'print $2'})"
+
+
+    case "${CRYPT_POL}.${CRYPT_CONF}" in
+      *__unix__*)
+        PASSWD="${CRYPTHASH}"
+      ;;
+      ##*crypt_bsdmd5*)
+      ##  PASSWD="$(echo "${MD5HASH}"|awk -F'$' {'print "\\$"$2"\\$"$3"\\$"$4'})"
+      ##;;
+      *crypt_sha512*)
+        PASSWD="$(echo "${SHA512HASH}"|awk -F'$' {'print "\\$"$2"\\$"$3"\\$"$4'})"
+    esac
+
+esac
+
+grep "^${USERID}:" /etc/shadow  >/dev/null && {
+  test "X${PASSWD}" != "X" && {
+    perl -p -i.prev -e "s|^${USERID}:[^:]+|${USERID}:${PASSWD}|g" /etc/shadow
+
+    case "${OSNAME}" in
+      Linux)
+        /usr/bin/passwd -u "${USERID}" 1>&2
+        /usr/bin/passwd -x 60 "${USERID}" 1>&2
+        /sbin/pam_tally2 --user "${USERID}" --reset 1>&2
+        exit 0
+      ;;
+      SunOS)
+        /usr/bin/passwd -u "${USERID}" 1>&2
+        /usr/bin/passwd -x 60 "${USERID}" 1>&2
+        exit 0
+      esac
+
+      exit 33
+  }  
+  exit 35
+}
+exit 37
+
